@@ -1,0 +1,24 @@
+
+<launch>
+	<group ns="camera">
+		<include file="$(find zed_wrapper)/launch/zed_camera.launch">
+			<arg name="publish_map_tf"		value="false" />
+    <arg name="initial_pose"                  default="[0.0,0.0,0.7, 0.0,0.0,0.0]" /> <!-- X, Y, Z, (meter) R, P, Y, (radians)-->
+		</include>
+	</group>
+	
+	<include file="$(find rtabmap_ros)/launch/rtabmap.launch">
+		<arg name="rtabmapviz"		value="false"  />
+		<arg name="rviz"		value="true"  />
+		<arg name="rviz_cfg"                default="$(find zed_slam)/config/rviz_config.rviz" />
+		
+		<arg name="rtabmap_args"		value="--delete_db_on_start"  />
+		<arg name="depth_topic"		value="/camera/depth/depth_registered" />
+		<arg name="frame_id"		value="zed_camera_center" />
+		<arg name="approx_sync"		value="false" />
+		<arg name="visual_odometry"		value="false" />
+		<arg name="odom_topic"		value="/camera/odom" />
+		<arg name="database_path"           default="/media/felipe/DATA/ROS/zed_slam/map/rtabmap.db"/>
+	</include>
+	
+</launch>
