@@ -1,24 +1,50 @@
 
 <launch>
+	
+	<!-- ZED -->
 	<group ns="camera">
 		<include file="$(find zed_wrapper)/launch/zed_camera.launch">
 			<arg name="publish_map_tf"		value="false" />
-    <arg name="initial_pose"                  default="[0.0,0.0,0.7, 0.0,0.0,0.0]" /> <!-- X, Y, Z, (meter) R, P, Y, (radians)-->
-		</include>
+			<arg name="initial_pose"         value="[0.0, 0.0, 0.7, 0.0, 0.0, 0.0]"/>
+    	</include>
 	</group>
 	
+	<!-- rtabmap + rviz -->
 	<include file="$(find rtabmap_ros)/launch/rtabmap.launch">
 		<arg name="rtabmapviz"		value="false"  />
 		<arg name="rviz"		value="true"  />
 		<arg name="rviz_cfg"                default="$(find zed_slam)/config/rviz_config.rviz" />
 		
-		<arg name="rtabmap_args"		value="--delete_db_on_start"  />
 		<arg name="depth_topic"		value="/camera/depth/depth_registered" />
 		<arg name="frame_id"		value="zed_camera_center" />
 		<arg name="approx_sync"		value="false" />
-		<arg name="visual_odometry"		value="false" />
-		<arg name="odom_topic"		value="/camera/odom" />
-		<arg name="database_path"           default="/media/felipe/DATA/ROS/zed_slam/map/rtabmap.db"/>
+		<arg name="database_path"           value="/media/felipe/DATA/ROS/zed_slam/map/rtabmap_andar3.db"/>
+		<arg name="localization"            value="true"/>
+  		<arg name="visual_odometry"			value="false"/>
+		<arg name="odom_topic"				value="/camera/odom"/>
 	</include>
+	
+	<!-- PointCloud_to_LaserScan -->
+	<node name="pointcloud_to_laserscan_node" pkg="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node" output="screen" >
+		<remap from="cloud_in" to="camera/point_cloud/cloud_registered"/>
+        <param name="range_min"         value="0.3"/>
+        <param name="range_max"         value="15.0"/>
+        <param name="min_height"        value="-0.7"/>
+        <param name="max_height"        value="-0.5"/>
+	</node>
+	
+	<!-- Gmapping -->
+	<node name="gmapping" pkg="gmapping" type="slam_gmapping" output="screen" >
+		<param name="base_frame" value="/odom"/>
+        <param name="agularUpdate" value="0.1"/>
+        <param name="linearUpdate" value="0.1"/>
+        <param name="lskip" value="10"/>
+        <param name="xmax" value="10"/>
+        <param name="xmin" value="-10"/>
+        <param name="ymax" value="10"/>
+        <param name="ymin" value="-10"/>
+        <param name="minimumScore" value="50"/>
+	</node>
+	
 	
 </launch>
