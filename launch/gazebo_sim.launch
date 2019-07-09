@@ -1,0 +1,91 @@
+<launch>
+	
+	<!-- Args -->
+  	<arg name="world_file"  default="$(find zed_slam)/worlds/ambiente"/>
+	
+	<!-- Gazebo -->
+	<include file="$(find gazebo_ros)/launch/empty_world.launch">
+		<arg name="use_sim_time" 			value="true"/>
+		<arg name="debug" 					value="false"/>
+		<arg name="gui" 					value="true" />
+		<arg name="world_name"				value="$(arg world_file)"/>
+	</include>
+	
+	<!-- Turtlebot -->
+	<include file="$(find turtlebot_gazebo)/launch/includes/$(optenv TURTLEBOT_BASE kobuki).launch.xml">
+		<arg name="base" value="$(optenv TURTLEBOT_BASE kobuki)"/>
+		<arg name="stacks" value="$(optenv TURTLEBOT_STACKS hexagons)"/>
+		<arg name="3d_sensor" value="$(optenv TURTLEBOT_3D_SENSOR kinect)"/>
+	</include>
+	
+	<!-- Rviz -->
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find zed_slam)/rviz/simulacao_gazebo.rviz" output="screen" />
+	
+	<!-- TF transformation -->
+	<node name="static_transform_publisher" pkg="tf" type="static_transform_publisher" args="0 0 0.303857 -1.57079637051 0 -1.57079637051 base_footprint camera_depth_optical_frame 50" output="screen" />
+	
+    <!-- Launch pointcloud_to_laserscan_node -->
+	<node name="pointcloud_to_laserscan_node" pkg="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node" output="screen" >
+		<remap from="cloud_in" to="camera/depth/points"/>
+        <param name="range_min"         value="0.3"/>
+        <param name="range_max"         value="15.0"/>
+        <param name="min_height"        value="0.0"/>
+        <param name="max_height"        value="0.6"/>
+		<param name="target_frame"		value="base_footprint"/>
+	</node>
+	
+	<!-- rtabmap + rviz 
+	<include file="$(find rtabmap_ros)/launch/rtabmap.launch">
+		<arg name="rtabmapviz"		value="false"  />
+		<arg name="rviz"		value="true"  />
+		<arg name="rviz_cfg"                default="$(find zed_slam)/rviz/simulacao_gazebo.rviz" />
+		
+		<arg name="depth_topic"		value="/camera/depth/image_raw" />
+		<arg name="frame_id"		value="base_footprint" />
+		<arg name="approx_sync"		value="false" />
+		<arg name="database_path"           value="/media/felipe/DATA/ROS/zed_slam/map/simulacao_gazebo.db"/>
+		<arg name="localization"            value="true"/>
+  		<arg name="visual_odometry"			value="false"/>
+		<arg name="odom_topic"				value="/odom"/>
+	</include>
+	-->
+	
+  <master auto="start"/>
+
+ <!--- Run AMCL --> 
+    <include file="$(find amcl)/examples/amcl_diff.launch" />
+
+   <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+    <rosparam file="$(find zed_slam)/config/costmap_common_params.yaml" command="load" ns="global_costmap" />
+    <rosparam file="$(find zed_slam)/config/costmap_common_params.yaml" command="load" ns="local_costmap" />
+    <rosparam file="$(find zed_slam)/config/local_costmap_params.yaml" command="load" />
+    <rosparam file="$(find zed_slam)/config/global_costmap_params.yaml" command="load" />
+    <rosparam file="$(find zed_slam)/config/base_local_planner_params.yaml" command="load" />
+ </node>
+	
+	
+	<!-- Map saver para salvar o mapa em um arquivo constantemente -->
+  <node name="map_saver" pkg="map_server" type="map_saver" args="-f $(find zed_slam)/map/map_simulador_gazebo"/>
+
+  <!-- Run the map server for MOVE_BASE map --> 
+  <node name="planner_map_server" pkg="map_server" type="map_server" args="$(find zed_slam)/map/map_backyard_simulador_gazebo.yaml">
+    <remap from="map" to="planner_map"/>
+  </node>
+	
+	<node pkg="tf" type="static_transform_publisher" name="map_to_planner_map_1" args="0 0 0 0 0 0 1 map planner_map 100" />
+	
+	<node pkg="tf" type="static_transform_publisher" name="map_to_planner_map_2" args="0 0 0 0 0 0 1 base_footprint base_link 100" />
+	
+    <!-- Launch gmapping -->
+	<node name="gmapping" pkg="gmapping" type="slam_gmapping" output="screen" >
+		<param name="base_frame" value="odom"/>
+        <param name="agularUpdate" value="0.1"/>
+        <param name="linearUpdate" value="0.1"/>
+        <param name="lskip" value="10"/>
+        <param name="xmax" value="10"/>
+        <param name="xmin" value="-10"/>
+        <param name="ymax" value="10"/>
+        <param name="ymin" value="-10"/>
+        <param name="minimumScore" value="50"/>
+	</node>
+</launch>
