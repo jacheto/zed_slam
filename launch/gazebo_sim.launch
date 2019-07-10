@@ -16,6 +16,7 @@
 		<arg name="base" value="$(optenv TURTLEBOT_BASE kobuki)"/>
 		<arg name="stacks" value="$(optenv TURTLEBOT_STACKS hexagons)"/>
 		<arg name="3d_sensor" value="$(optenv TURTLEBOT_3D_SENSOR kinect)"/>
+		<arg name="mux_config_path" value="$(find zed_slam)/config/mux.yaml"/>
 	</include>
 	
 	<!-- Rviz -->
@@ -34,37 +35,21 @@
 		<param name="target_frame"		value="base_footprint"/>
 	</node>
 	
-	<!-- rtabmap + rviz 
-	<include file="$(find rtabmap_ros)/launch/rtabmap.launch">
-		<arg name="rtabmapviz"		value="false"  />
-		<arg name="rviz"		value="true"  />
-		<arg name="rviz_cfg"                default="$(find zed_slam)/rviz/simulacao_gazebo.rviz" />
-		
-		<arg name="depth_topic"		value="/camera/depth/image_raw" />
-		<arg name="frame_id"		value="base_footprint" />
-		<arg name="approx_sync"		value="false" />
-		<arg name="database_path"           value="/media/felipe/DATA/ROS/zed_slam/map/simulacao_gazebo.db"/>
-		<arg name="localization"            value="true"/>
-  		<arg name="visual_odometry"			value="false"/>
-		<arg name="odom_topic"				value="/odom"/>
-	</include>
-	-->
-	
   <master auto="start"/>
 
  <!--- Run AMCL --> 
     <include file="$(find amcl)/examples/amcl_diff.launch" />
 
-   <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
     <rosparam file="$(find zed_slam)/config/costmap_common_params.yaml" command="load" ns="global_costmap" />
     <rosparam file="$(find zed_slam)/config/costmap_common_params.yaml" command="load" ns="local_costmap" />
     <rosparam file="$(find zed_slam)/config/local_costmap_params.yaml" command="load" />
     <rosparam file="$(find zed_slam)/config/global_costmap_params.yaml" command="load" />
     <rosparam file="$(find zed_slam)/config/base_local_planner_params.yaml" command="load" />
- </node>
+	<remap from="cmd_vel" to="cmd_vel_mux/input/navi" />
+  </node>
 	
-	
-	<!-- Map saver para salvar o mapa em um arquivo constantemente -->
+  <!-- Map saver para salvar o mapa em um arquivo constantemente -->
   <node name="map_saver" pkg="map_server" type="map_saver" args="-f $(find zed_slam)/map/map_simulador_gazebo"/>
 
   <!-- Run the map server for MOVE_BASE map --> 
